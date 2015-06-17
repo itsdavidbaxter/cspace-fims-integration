@@ -13,6 +13,8 @@ $authority_file = "auth_file.txt";
 $config_file = "ucjeps_fims.xml";
 $input_names = "input_names.txt";
 
+open(LOG_FILE,">log.txt") || die "could not initiate new log file\n";
+
 my %REF;
 my %AUTH;
 my @authnames;
@@ -84,23 +86,34 @@ close(IN);
 open(IN, "$input_names") || die "could not open name list file $input_names\n";
 while(my $input_name = <IN>){
 	chomp $input_name;
-	print "$input_name\n";
+#	print "$input_name\n";
+
+if ($input_name =~ /^$/){
+	print LOG_FILE "blank input names should be changed to \"Unknown\"\n";
+}
+
+elsif ( grep( /^$input_name$/, @authnames ) ) { #if the input name exactly matches an item in the authnames array
+	#print "is in the authority file: $input_name\n";
+	#print nothing; pass the auth_name along to compare to the config file
+}
+
+elsif ( grep( /^$input_name$/, @noauthnames ) ) { #if the input matches the noauth_name
+	print LOG_FILE "noauthname match: please change input name $input_name to $AUTH{$input_name}\n";
+}
+
+elsif ($input_name =~ / / && grep( /^$input_name/, @authnames ) ) { #elsif input matches the start of the string of an auth name
+	my @partial_matches;
+	@partial_matches = grep( /^$input_name/, @authnames );
+	print LOG_FILE "partial name match: suggested to change input name $input_name to one of following: ", join "; ",@partial_matches, "\n";
+}
+
+else {
+	print LOG_FILE "name not in the authority file, add to CSPACE: $input_name\n";
+}
+
+next;
 
 
-#if () { #if the input name matches the auth_name
-#pass the auth_name along to compare to the config file
-#}
-
-#elsif () { #if the input matches the noauth_name
-##log: "noauthname match: please change input name $input_name to $auth_name";
-#next;
-####NOTE: if we're matching the noauthname, we still need to get the authname because that's what CSpace shows
-#}
-
-#elsif () { #elsif name matches the start of the string of an auth name
-##log: "partial name match: suggested to change input name $input_name to $auth_name";
-#next;
-#}
 
 #else { #else the name does not match and needs to be added to CSpace
 ##print to log file "$input_name\tapparently not in CSpace\n";
@@ -120,7 +133,7 @@ while(my $input_name = <IN>){
 
 }
 
-die;
+warn "add_to_config.pl complete. See log.txt for suggested changes\n";
 
 ###Script should be re-run until the only messages received are "name in config: no action required" or "name must be added to CSpace"
 ###Once all names are added to CSpace then then iterate until the only message received is "no action required"
