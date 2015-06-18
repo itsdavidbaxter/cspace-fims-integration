@@ -9,11 +9,12 @@ use strict;
 my $authority_file;
 my $config_file;
 my $input_names;
-$authority_file = "auth_file.txt";
-$config_file = "ucjeps_fims.xml";
-$input_names = "input_names.txt";
+$authority_file = "auth_file.txt" || die "authority file not found. Run prepare_file.sh\n";
+$config_file = "ucjeps_fims.xml" || die "config file not found. Add config file ucjeps_fims.xml to directory\n";
+$input_names = "input_names.txt" || die "input names file not found. Run prepare_file.sh\n";
 
-open(LOG_FILE,">log.txt") || die "could not initiate new log file\n";
+open(LOG_FILE,">log.txt") || die "could not instantiate new log file\n";
+open(FOR_CONFIG,">to_add_to_config.txt") || die "could not instantiate new config file\n";
 
 my %REF;
 my %AUTH;
@@ -68,13 +69,14 @@ while(my $line = <IN>){
 	#because we are matching complex strings, use Q\...E\
 	#Q\ means "disable metacharacters until \E
 	next unless ($line =~ /^\Q<field uri="urn:cspace:ucjeps.cspace.berkeley.edu:taxonomyauthority:name(taxon):item:name\E/); 
-	#print "$line\n";
+#	print "$line\n";
 	if ($line =~ /.*\[CDATA\[(.*)\]\]/){ #if the line has a CDATA tag with content
 #		print "$1\n";
 		push @names_in_config, "$1";
 	}
 }
 close(IN);
+
 
 #foreach (@names_in_config){
 #	print "$_\n";
@@ -88,52 +90,54 @@ while(my $input_name = <IN>){
 	chomp $input_name;
 #	print "$input_name\n";
 
-if ($input_name =~ /^$/){
-	print LOG_FILE "blank input names should be changed to \"Unknown\"\n";
+	if ($input_name =~ /^$/){
+		print LOG_FILE "blank input names should be changed to \"Unknown\"\n";
+	}
+	
+	elsif ( grep( /^$input_name$/, @authnames ) ) { #if the input name exactly matches an item in the authnames array
+		#print "is in the authority file: $input_name\n";
+		#print nothing; pass the auth_name along to compare to the config file
+	}
+
+	elsif ( grep( /^$input_name$/, @noauthnames ) ) { #if the input matches the noauth_name
+		print LOG_FILE "noauthname match: please change input name $input_name to $AUTH{$input_name}\n";
+		next;
+	}
+
+	elsif ($input_name =~ / / && grep( /^$input_name/, @authnames ) ) { #elsif input matches the start of the string of an auth name
+		my @partial_matches;
+		@partial_matches = grep( /^$input_name/, @authnames );
+		print LOG_FILE "partial name match: suggested to change input name $input_name to one of following: ", join "; ",@partial_matches, "\n";
+		next;
+	}
+
+	else {
+		print LOG_FILE "name apparently not in the authority file, add to CSPACE: $input_name\n";
+		next;
+	}
+
+	##now, once the name is confirmed as in CSpace and the input matches the auth name, check if the name is already in the config file
+	if ( grep( /^$input_name$/, @names_in_config ) ) { #if $input_name matches an item in the CONF array
+		print LOG_FILE "name already in config file; no action required: $input_name\n";
+		next;
+	}
+
+	else { #else the name is not in the config file and needs to be added
+		#format ref name to the FIMS config format, i.e.:
+		#ref name: urn:cspace:ucjeps.cspace.berkeley.edu:taxonomyauthority:name(taxon):item:name(23082)'Diplacus calycinus Eastw.'
+		#FIMS format: <field uri="urn:cspace:ucjeps.cspace.berkeley.edu:taxonomyauthority:name(taxon):item:name(23082)"><![CDATA[Diplacus calycinus Eastw.]]></field>
+		$REF{$input_name}=~s/^/<field uri="/;
+		$REF{$input_name}=~s/\)'/)"><![CDATA[/;
+		$REF{$input_name}=~s/'$/]]><\/field>/;
+		#then print to config output so it can be pasted directly into FIMS config file
+		print FOR_CONFIG "$REF{$input_name}\n";
+	}
+
 }
 
-elsif ( grep( /^$input_name$/, @authnames ) ) { #if the input name exactly matches an item in the authnames array
-	#print "is in the authority file: $input_name\n";
-	#print nothing; pass the auth_name along to compare to the config file
-}
-
-elsif ( grep( /^$input_name$/, @noauthnames ) ) { #if the input matches the noauth_name
-	print LOG_FILE "noauthname match: please change input name $input_name to $AUTH{$input_name}\n";
-}
-
-elsif ($input_name =~ / / && grep( /^$input_name/, @authnames ) ) { #elsif input matches the start of the string of an auth name
-	my @partial_matches;
-	@partial_matches = grep( /^$input_name/, @authnames );
-	print LOG_FILE "partial name match: suggested to change input name $input_name to one of following: ", join "; ",@partial_matches, "\n";
-}
-
-else {
-	print LOG_FILE "name not in the authority file, add to CSPACE: $input_name\n";
-}
-
-next;
-
-
-
-#else { #else the name does not match and needs to be added to CSpace
-##print to log file "$input_name\tapparently not in CSpace\n";
-#next;
-#}
-
-
-##now, once the name is confirmed as in CSpace and the input matches the auth name, check if the name is already in the config file
-#if { #if $input_name matches an item in the CONF array
-## &log ("$input_name\talready in config file; no action required");
-#}
-
-#else { #else the name is not in the config file and needs to be added
-##print to output $refname + $authname in the right format, so it can just be pasted in
-#}
-
-
-}
-
-warn "add_to_config.pl complete. See log.txt for suggested changes\n";
+warn "add_to_config.pl complete.\n"
+warn "See log.txt for suggested changes\n";
+warn "and to_add_to_config.txt for lines to add to FIMS config file\n";
 
 ###Script should be re-run until the only messages received are "name in config: no action required" or "name must be added to CSpace"
 ###Once all names are added to CSpace then then iterate until the only message received is "no action required"
