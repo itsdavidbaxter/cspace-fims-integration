@@ -135,7 +135,7 @@ while(my $input_name = <IN>){
 
 }
 
-warn "add_to_config.pl complete.\n"
+warn "add_to_config.pl complete.\n";
 warn "See log.txt for suggested changes\n";
 warn "and to_add_to_config.txt for lines to add to FIMS config file\n";
 
