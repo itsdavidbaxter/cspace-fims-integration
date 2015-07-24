@@ -77,7 +77,6 @@ while(my $line = <IN>){
 }
 close(IN);
 
-
 #foreach (@names_in_config){
 #	print "$_\n";
 #}
@@ -88,25 +87,25 @@ close(IN);
 open(IN, "$input_names") || die "could not open name list file $input_names\n";
 while(my $input_name = <IN>){
 	chomp $input_name;
-#	print "$input_name\n";
+	print "$input_name\n";
 
 	if ($input_name =~ /^$/){
 		print LOG_FILE "blank input names should be changed to \"Unknown\"\n";
 	}
 	
-	elsif ( grep( /^$input_name$/, @authnames ) ) { #if the input name exactly matches an item in the authnames array
-		#print "is in the authority file: $input_name\n";
+	elsif ( grep( /^\Q$input_name\E$/, @authnames ) ) { #if the input name exactly matches an item in the authnames array
+		print "is in the authority file: $input_name\n";
 		#print nothing; pass the auth_name along to compare to the config file
 	}
 
-	elsif ( grep( /^$input_name$/, @noauthnames ) ) { #if the input matches the noauth_name
+	elsif ( grep( /^\Q$input_name\E$/, @noauthnames ) ) { #if the input matches the noauth_name
 		print LOG_FILE "noauthname match: please change input name $input_name to $AUTH{$input_name}\n";
 		next;
 	}
 
-	elsif ($input_name =~ / / && grep( /^$input_name/, @authnames ) ) { #elsif input matches the start of the string of an auth name
+	elsif ($input_name =~ / / && grep( /^\Q$input_name\E/, @authnames ) ) { #elsif input matches the start of the string of an auth name
 		my @partial_matches;
-		@partial_matches = grep( /^$input_name/, @authnames );
+		@partial_matches = grep( /^\Q$input_name\E/, @authnames );
 		print LOG_FILE "partial name match: suggested to change input name $input_name to one of following: ", join "; ",@partial_matches, "\n";
 		next;
 	}
@@ -117,7 +116,7 @@ while(my $input_name = <IN>){
 	}
 
 	##now, once the name is confirmed as in CSpace and the input matches the auth name, check if the name is already in the config file
-	if ( grep( /^$input_name$/, @names_in_config ) ) { #if $input_name matches an item in the CONF array
+	if ( grep( /^\Q$input_name\E$/, @names_in_config ) ) { #if $input_name matches an item in the CONF array
 		print LOG_FILE "name already in config file; no action required: $input_name\n";
 		next;
 	}
