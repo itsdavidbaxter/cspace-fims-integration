@@ -1,0 +1,9 @@
+.DS_Store
+*.docx
+*.xml
+*.xlsx
+*.txt
+input_names.txt
+auth_file.txt
+taxon_auth_*.txt
+unverified_auth_*.txt
