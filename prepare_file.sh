@@ -45,22 +45,10 @@ fi
 #prepare the input file into a list of names
 cut -f "$2" "$1" | sort | uniq | sort > input_names.txt
 
-#check that there is exactly one taxon file and unverified taxon file
-#using wc, $1 is line count, $2 is word count, $3 is letter count, and $4 is file name
-#so ls for taxon_auth and unverified_auth files, and check that line count ($1) is exactly 1 for each
-for PREFIX in "taxon_auth_" "unverified_auth_" 
-do
-	COUNT=`ls $PREFIX*.txt | wc | awk {'print $1'}`
-	if [ $COUNT != 1 ]
-		then
-			PREFIX+="YYMMDD.txt"
-			echo "check for taxon authority file $PREFIX)"
-			echo "there are $COUNT when there should be exactly 1"
-			echo "aborting script"
-			exit 1
-	fi
-done
-
 #concatenate CSpace authority files
-tail -n +2 taxon_auth_*.txt > auth_file.txt
-tail -n +2 unverified_auth_*.txt >> auth_file.txt 
+tail -n +2 taxon_auth.txt > auth_file.txt
+tail -n +2 unverified_auth.txt >> auth_file.txt 
+
+echo "CSpace authority files concatenated into auth_file.txt"
+echo "Did you get the most recent versions of the files from the CSpace extracts on h4?"
+
